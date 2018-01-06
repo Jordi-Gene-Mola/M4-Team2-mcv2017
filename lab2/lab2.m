@@ -1,6 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Lab 2: Image mosaics
-
+clear
+clc
 addpath('sift');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -15,7 +16,7 @@ imcrgb = imread('Data/llanes/llanes_c.jpg');
 % imargb = imread('Data/castle_int/0016_s.png');
 % imbrgb = imread('Data/castle_int/0015_s.png');
 % imcrgb = imread('Data/castle_int/0014_s.png');
-% 
+
 % imargb = imread('Data/aerial/site13/frame00000.png');
 % imbrgb = imread('Data/aerial/site13/frame00002.png');
 % imcrgb = imread('Data/aerial/site13/frame00003.png');
@@ -112,8 +113,8 @@ title('Mosaic A-B-C');
 
 % Homography ab
 
-x = ...;  %ToDo: set the non-homogeneous point coordinates of the 
-xp = ...; %      point correspondences we will refine with the geometric method
+x = points_a(1:2, matches_ab(1,inliers_ab));  %ToDo: set the non-homogeneous point coordinates of the 
+xp = points_b(1:2, matches_ab(2,inliers_ab)); %      point correspondences we will refine with the geometric method
 Xobs = [ x(:) ; xp(:) ];     % The column vector of observed values (x and x')
 P0 = [ Hab(:) ; x(:) ];      % The parameters or independent variables
 
@@ -137,6 +138,13 @@ fprintf(1, 'Gold standard reproj error initial %f, final %f\n', err_initial, err
 
 % ToDo: compute the points xhat and xhatp which are the correspondences
 % returned by the refinement with the Gold Standard algorithm
+xhat = P(9+1:end);
+xhat = reshape(xhat, [2,size(xhat,1)/2]);
+xhat = [xhat ; ones(1,size(xhat,2))]; % from euclidean to homogeneous
+xhatp = Hab_r*xhat;
+
+xhat = euclid(xhat);
+xhatp = euclid(xhatp);
 
 figure;
 imshow(imargb);%image(imargb);
@@ -153,12 +161,37 @@ plot(xhatp(1,:), xhatp(2,:),'+c');
 %%  Homography bc
 
 % ToDo: refine the homography bc with the Gold Standard algorithm
+x = points_b(1:2, matches_bc(1,inliers_bc));  %ToDo: set the non-homogeneous point coordinates of the 
+xp = points_c(1:2, matches_bc(2,inliers_bc)); %      point correspondences we will refine with the geometric method
+Xobs = [ x(:) ; xp(:) ];     % The column vector of observed values (x and x')
+P0 = [ Hbc(:) ; x(:) ];      % The parameters or independent variables
 
+Y_initial = gs_errfunction( P0, Xobs ); % ToDo: create this function that we need to pass to the lsqnonlin function
+% NOTE: gs_errfunction should return E(X) and not the sum-of-squares E=sum(E(X).^2)) that we want to minimize. 
+% (E(X) is summed and squared implicitly in the lsqnonlin algorithm.) 
+err_initial = sum( sum( Y_initial.^2 ));
+
+options = optimset('Algorithm', 'levenberg-marquardt');
+P = lsqnonlin(@(t) gs_errfunction(t, Xobs), P0, [], [], options);
+
+Hbc_r = reshape( P(1:9), 3, 3 );
+f = gs_errfunction( P, Xobs ); % lsqnonlin does not return f
+err_final = sum( sum( f.^2 ));
+
+% we show the geometric error before and after the refinement
+fprintf(1, 'Gold standard reproj error initial %f, final %f\n', err_initial, err_final);
 
 %% See differences in the keypoint locations
 
 % ToDo: compute the points xhat and xhatp which are the correspondences
 % returned by the refinement with the Gold Standard algorithm
+xhat = P(9+1:end);
+xhat = reshape(xhat, [2,size(xhat,1)/2]); % from nx1 to 2x(n/2)
+xhat = [xhat ; ones(1,size(xhat,2))]; % from euclidean to homogeneous
+xhatp = Hbc_r*xhat;
+
+xhat = euclid(xhat);
+xhatp = euclid(xhatp);
 
 figure;
 imshow(imbrgb);%image(imbrgb);
@@ -174,9 +207,9 @@ plot(xhatp(1,:), xhatp(2,:),'+c');
 
 %% Build mosaic
 corners = [-400 1200 -100 650];
-iwb = apply_H_v2(imbrgb, ??, corners); % ToDo: complete the call to the function
-iwa = apply_H_v2(imargb, ??, corners); % ToDo: complete the call to the function
-iwc = apply_H_v2(imcrgb, ??, corners); % ToDo: complete the call to the function
+iwb = apply_H_v2(imbrgb, eye(3), corners); % ToDo: complete the call to the function
+iwa = apply_H_v2(imargb, Hab_r, corners); % ToDo: complete the call to the function
+iwc = apply_H_v2(imcrgb, inv(Hbc_r), corners); % ToDo: complete the call to the function
 
 figure;
 imshow(max(iwc, max(iwb, iwa)));%image(max(iwc, max(iwb, iwa)));axis off;
@@ -318,9 +351,30 @@ end
 %%              DLT algorithm (folder "logos").
 %%              Interpret and comment the results.
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 7. OPTIONAL: Replace the logo of the UPF by the master logo
 %%              in one of the previous images using the DLT algorithm.
 
+clear;
+clc;
+close all;
+
+imargb = imread('Data/logos/logo_master.PNG');
+imbrgb = imread('Data/logos/UPFstand.jpg');
+
+cornersA = [1 size(imbrgb,2) 1 size(imbrgb,2);
+            1 1 size(imbrgb,1) size(imbrgb,1);
+            1 1 1 1];
+cornersB = [169 259 173 264;
+            148 155 274 266;
+            1 1 1 1];
+        
+Hlogo = homography2d(cornersA,cornersB);
+length = size(imargb);
+
+imaw = apply_H_v2(imargb, Hlogo, [-200 1000 -300 1000]);
+imbw = apply_H_v2(imbrgb, eye(3), [-200 1000 -300 1000]);
+figure, imshow(max(imbw,imaw))
 
 
