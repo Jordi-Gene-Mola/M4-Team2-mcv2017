@@ -217,164 +217,251 @@ title('Mosaic A-B-C');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 5. OPTIONAL: Calibration with a planar pattern
-
-clear all;
-
-%% Read template and images.
-T     = imread('Data/calib/template.jpg');
-I{1}  = imread('Data/calib/graffiti1.tif');
-I{2}  = imread('Data/calib/graffiti2.tif');
-I{3}  = imread('Data/calib/graffiti3.tif');
-%I{4}  = imread('Data/calib/graffiti4.tif');
-%I{5}  = imread('Data/calib/graffiti5.tif');
-Tg = sum(double(T), 3) / 3 / 255;
-Ig{1} = sum(double(I{1}), 3) / 3 / 255;
-Ig{2} = sum(double(I{2}), 3) / 3 / 255;
-Ig{3} = sum(double(I{3}), 3) / 3 / 255;
-
-N = length(I);
-
-%% Compute keypoints.
-fprintf('Computing sift points in template... ');
-[pointsT, descrT] = sift(Tg, 'Threshold', 0.05);
-fprintf(' done\n');
-
-points = cell(N,1);
-descr = cell(N,1);
-for i = 1:N
-    fprintf('Computing sift points in image %d... ', i);
-    [points{i}, descr{i}] = sift(Ig{i}, 'Threshold', 0.05);
-    fprintf(' done\n');
-end
-
-%% Match and compute homographies.
-H = cell(N,1);
-for i = 1:N
-    % Match against template descriptors.
-    fprintf('Matching image %d... ', i);
-    matches = siftmatch(descrT, descr{i});
-    fprintf('done\n');
-
-    % Fit homography and remove outliers.
-    x1 = pointsT(1:2, matches(1, :));
-    x2 = points{i}(1:2, matches(2, :));
-    H{i} = 0;
-    [H{i}, inliers] =  ransac_homography_adaptive_loop(homog(x1), homog(x2), 3, 1000);
-
-    % Plot inliers.
-    figure;
-    plotmatches(Tg, Ig{i}, pointsT(1:2,:), points{i}(1:2,:), matches(:, inliers));
-
-    % Play with the homography
-    %vgg_gui_H(T, I{i}, H{i});
-end
-
-%% Compute the Image of the Absolute Conic
-
-w = ... % ToDo
- 
-%% Recover the camera calibration.
-
-K = ... % ToDo
-    
-% ToDo: in the report make some comments related to the obtained internal
-%       camera parameters and also comment their relation to the image size
-
-%% Compute camera position and orientation.
-R = cell(N,1);
-t = cell(N,1);
-P = cell(N,1);
-figure;hold;
-for i = 1:N
-    % ToDo: compute r1, r2, and t{i}
-    r1 = ...
-    r2 = ...
-    t{i} = ...
-    
-    % Solve the scale ambiguity by forcing r1 and r2 to be unit vectors.
-    s = sqrt(norm(r1) * norm(r2)) * sign(t{i}(3));
-    r1 = r1 / s;
-    r2 = r2 / s;
-    t{i} = t{i} / s;
-    R{i} = [r1, r2, cross(r1,r2)];
-    
-    % Ensure R is a rotation matrix
-    [U S V] = svd(R{i});
-    R{i} = U * eye(3) * V';
-   
-    P{i} = K * [R{i} t{i}];
-    plot_camera(P{i}, 800, 600, 200);
-end
-
-% ToDo: in the report explain how the optical center is computed in the
-%       provided code
-
-[ny,nx] = size(T);
-p1 = [0 0 0]';
-p2 = [nx 0 0]';
-p3 = [nx ny 0]';
-p4 = [0 ny 0]';
-% Draw planar pattern
-vgg_scatter_plot([p1 p2 p3 p4 p1], 'g');
-% Paint image texture
-surface('XData',[0 nx; 0 nx],'YData',[0 0; 0 0],'ZData',[0 0; -ny -ny],'CData',T,'FaceColor','texturemap');
-colormap(gray);
-axis equal;
-
-%% Plot a static camera with moving calibration pattern.
-figure; hold;
-plot_camera(K * eye(3,4), 800, 600, 200);
-% ToDo: complete the call to the following function with the proper
-%       coordinates of the image corners in the new reference system
-for i = 1:N
-    vgg_scatter_plot( [...   ...   ...   ...   ...], 'r');
-end
-
-%% Augmented reality: Plot some 3D points on every camera.
-[Th, Tw] = size(Tg);
-cube = [0 0 0; 1 0 0; 1 0 0; 1 1 0; 1 1 0; 0 1 0; 0 1 0; 0 0 0; 0 0 1; 1 0 1; 1 0 1; 1 1 1; 1 1 1; 0 1 1; 0 1 1; 0 0 1; 0 0 0; 1 0 0; 1 0 0; 1 0 1; 1 0 1; 0 0 1; 0 0 1; 0 0 0; 0 1 0; 1 1 0; 1 1 0; 1 1 1; 1 1 1; 0 1 1; 0 1 1; 0 1 0; 0 0 0; 0 1 0; 0 1 0; 0 1 1; 0 1 1; 0 0 1; 0 0 1; 0 0 0; 1 0 0; 1 1 0; 1 1 0; 1 1 1; 1 1 1; 1 0 1; 1 0 1; 1 0 0 ]';
-
-X = (cube - .5) * Tw / 4 + repmat([Tw / 2; Th / 2; -Tw / 8], 1, length(cube));
-
-for i = 1:N
-    figure; colormap(gray);
-    imagesc(Ig{i});
-    hold on;
-    x = euclid(P{i} * homog(X));
-    vgg_scatter_plot(x, 'g');
-end
-
+% 
+% clear all;
+% 
+% %% Read template and images.
+% T     = imread('Data/calib/template.jpg');
+% I{1}  = imread('Data/calib/graffiti1.tif');
+% I{2}  = imread('Data/calib/graffiti2.tif');
+% I{3}  = imread('Data/calib/graffiti3.tif');
+% %I{4}  = imread('Data/calib/graffiti4.tif');
+% %I{5}  = imread('Data/calib/graffiti5.tif');
+% Tg = sum(double(T), 3) / 3 / 255;
+% Ig{1} = sum(double(I{1}), 3) / 3 / 255;
+% Ig{2} = sum(double(I{2}), 3) / 3 / 255;
+% Ig{3} = sum(double(I{3}), 3) / 3 / 255;
+% 
+% N = length(I);
+% 
+% %% Compute keypoints.
+% fprintf('Computing sift points in template... ');
+% [pointsT, descrT] = sift(Tg, 'Threshold', 0.05);
+% fprintf(' done\n');
+% 
+% points = cell(N,1);
+% descr = cell(N,1);
+% for i = 1:N
+%     fprintf('Computing sift points in image %d... ', i);
+%     [points{i}, descr{i}] = sift(Ig{i}, 'Threshold', 0.05);
+%     fprintf(' done\n');
+% end
+% 
+% %% Match and compute homographies.
+% H = cell(N,1);
+% for i = 1:N
+%     % Match against template descriptors.
+%     fprintf('Matching image %d... ', i);
+%     matches = siftmatch(descrT, descr{i});
+%     fprintf('done\n');
+% 
+%     % Fit homography and remove outliers.
+%     x1 = pointsT(1:2, matches(1, :));
+%     x2 = points{i}(1:2, matches(2, :));
+%     H{i} = 0;
+%     [H{i}, inliers] =  ransac_homography_adaptive_loop(homog(x1), homog(x2), 3, 1000);
+% 
+%     % Plot inliers.
+%     figure;
+%     plotmatches(Tg, Ig{i}, pointsT(1:2,:), points{i}(1:2,:), matches(:, inliers));
+% 
+%     % Play with the homography
+%     %vgg_gui_H(T, I{i}, H{i});
+% end
+% 
+% %% Compute the Image of the Absolute Conic
+% 
+% w = ... % ToDo
+%  
+% %% Recover the camera calibration.
+% 
+% K = ... % ToDo
+%     
+% % ToDo: in the report make some comments related to the obtained internal
+% %       camera parameters and also comment their relation to the image size
+% 
+% %% Compute camera position and orientation.
+% R = cell(N,1);
+% t = cell(N,1);
+% P = cell(N,1);
+% figure;hold;
+% for i = 1:N
+%     % ToDo: compute r1, r2, and t{i}
+%     r1 = ...
+%     r2 = ...
+%     t{i} = ...
+%     
+%     % Solve the scale ambiguity by forcing r1 and r2 to be unit vectors.
+%     s = sqrt(norm(r1) * norm(r2)) * sign(t{i}(3));
+%     r1 = r1 / s;
+%     r2 = r2 / s;
+%     t{i} = t{i} / s;
+%     R{i} = [r1, r2, cross(r1,r2)];
+%     
+%     % Ensure R is a rotation matrix
+%     [U S V] = svd(R{i});
+%     R{i} = U * eye(3) * V';
+%    
+%     P{i} = K * [R{i} t{i}];
+%     plot_camera(P{i}, 800, 600, 200);
+% end
+% 
+% % ToDo: in the report explain how the optical center is computed in the
+% %       provided code
+% 
+% [ny,nx] = size(T);
+% p1 = [0 0 0]';
+% p2 = [nx 0 0]';
+% p3 = [nx ny 0]';
+% p4 = [0 ny 0]';
+% % Draw planar pattern
+% vgg_scatter_plot([p1 p2 p3 p4 p1], 'g');
+% % Paint image texture
+% surface('XData',[0 nx; 0 nx],'YData',[0 0; 0 0],'ZData',[0 0; -ny -ny],'CData',T,'FaceColor','texturemap');
+% colormap(gray);
+% axis equal;
+% 
+% %% Plot a static camera with moving calibration pattern.
+% figure; hold;
+% plot_camera(K * eye(3,4), 800, 600, 200);
+% % ToDo: complete the call to the following function with the proper
+% %       coordinates of the image corners in the new reference system
+% for i = 1:N
+%     vgg_scatter_plot( [...   ...   ...   ...   ...], 'r');
+% end
+% 
+% %% Augmented reality: Plot some 3D points on every camera.
+% [Th, Tw] = size(Tg);
+% cube = [0 0 0; 1 0 0; 1 0 0; 1 1 0; 1 1 0; 0 1 0; 0 1 0; 0 0 0; 0 0 1; 1 0 1; 1 0 1; 1 1 1; 1 1 1; 0 1 1; 0 1 1; 0 0 1; 0 0 0; 1 0 0; 1 0 0; 1 0 1; 1 0 1; 0 0 1; 0 0 1; 0 0 0; 0 1 0; 1 1 0; 1 1 0; 1 1 1; 1 1 1; 0 1 1; 0 1 1; 0 1 0; 0 0 0; 0 1 0; 0 1 0; 0 1 1; 0 1 1; 0 0 1; 0 0 1; 0 0 0; 1 0 0; 1 1 0; 1 1 0; 1 1 1; 1 1 1; 1 0 1; 1 0 1; 1 0 0 ]';
+% 
+% X = (cube - .5) * Tw / 4 + repmat([Tw / 2; Th / 2; -Tw / 8], 1, length(cube));
+% 
+% for i = 1:N
+%     figure; colormap(gray);
+%     imagesc(Ig{i});
+%     hold on;
+%     x = euclid(P{i} * homog(X));
+%     vgg_scatter_plot(x, 'g');
+% end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% 6. OPTIONAL: Detect the UPF logo in the two UPF images using the 
 %%              DLT algorithm (folder "logos").
 %%              Interpret and comment the results.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+T = imread('Data/logos/logoUPF.png');
+I{1} = imread('Data/logos/UPFstand.jpg');
+I{2} = imread('Data/logos/UPFbuilding.jpg');
+
+logo = sum(double(T), 3) / 3 / 255;
+img1 = sum(double(I{1}), 3) / 3 / 255;
+img2 = sum(double(I{2}), 3) / 3 / 255;
+
+[kpt_logo, des_logo] = sift(logo, 'Threshold', 0.01);
+[kpt_img1, des_img1] = sift(img1, 'Threshold', 0.01);
+[kpt_img2, des_img2] = sift(img2, 'Threshold', 0.01);
+
+
+figure;
+imshow(logo);%image(imargb)
+hold on;
+plot(kpt_logo(1,:), kpt_logo(2,:),'+y');
+figure;
+imshow(img1);%image(imbrgb);
+hold on;
+plot(kpt_img1(1,:), kpt_img1(2,:),'+y');
+figure;
+imshow(img2);%image(imcrgb);
+hold on;
+plot(kpt_img2(1,:), kpt_img2(2,:),'+y');
+%% Match SIFT keypoints 
+
+% between a and b
+matches_1 = siftmatch(des_logo, des_img1);
+figure;
+plotmatches(logo, img1, kpt_logo(1:2,:), kpt_img1(1:2,:), matches_1, 'Stacking', 'v');
+
+% between b and c
+matches_2 = siftmatch(des_logo, des_img2);
+figure;
+plotmatches(logo, img2, kpt_logo(1:2,:), kpt_img2(1:2,:), matches_2, 'Stacking', 'v');
+
+%% Compute homography (normalized DLT) between a and b, play with the homography
+th = 3;
+xab_a = [kpt_logo(1:2, matches_1(1,:)); ones(1, length(matches_1))];
+xab_b = [kpt_img1(1:2, matches_1(2,:)); ones(1, length(matches_1))];
+[Hab, inliers_ab] = ransac_homography_adaptive_loop(xab_a, xab_b, th, 1000); % ToDo: complete this function
+
+figure;
+plotmatches(logo, img1, kpt_logo(1:2,:), kpt_img1(1:2,:), ...
+    matches_1(:,inliers_ab), 'Stacking', 'v');
+
+vgg_gui_H(T, I{1}, Hab);
+
+xbc_b = [kpt_logo(1:2, matches_2(1,:)); ones(1, length(matches_2))];
+xbc_c = [kpt_img2(1:2, matches_2(2,:)); ones(1, length(matches_2))];
+[Hbc, inliers_bc] = ransac_homography_adaptive_loop(xbc_b, xbc_c, th, 2000); 
+
+figure;
+plotmatches(logo, img2, kpt_logo(1:2,:), kpt_img2(1:2,:), ...
+    matches_2(:,inliers_bc), 'Stacking', 'v');
+
+vgg_gui_H(T, I{2}, Hbc);
+%%
+%Obtain template corners:
+[n,m,~] = size(logo);
+corner1 = Hab*[1;1;1];
+corner2 = Hab*[1;m;1];
+corner3 = Hab*[n;1;1];
+corner4 = Hab*[n;m;1];
+corner1 = corner1/corner1(3);
+corner2 = corner2/corner2(3);
+corner3 = corner3/corner3(3);
+corner4 = corner4/corner4(3);
+% Draw detection
+figure;
+imshow(I{1});
+line([corner1(1) corner2(1)],[corner1(2) corner2(2)],'Color','g');
+line([corner1(1) corner3(1)],[corner1(2) corner3(2)],'Color','g');
+line([corner2(1) corner4(1)],[corner2(2) corner4(2)],'Color','g');
+line([corner3(1) corner4(1)],[corner3(2) corner4(2)],'Color','g');
+
+corner1 = Hbc*[1;1;1];
+corner2 = Hbc*[1;m;1];
+corner3 = Hbc*[n;1;1];
+corner4 = Hbc*[n;m;1];
+corner1 = corner1/corner1(3);
+corner2 = corner2/corner2(3);
+corner3 = corner3/corner3(3);
+corner4 = corner4/corner4(3);
+% Draw detection
+figure;
+imshow(I{2});
+line([corner1(1) corner2(1)],[corner1(2) corner2(2)],'Color','g');
+line([corner1(1) corner3(1)],[corner1(2) corner3(2)],'Color','g');
+line([corner2(1) corner4(1)],[corner2(2) corner4(2)],'Color','g');
+line([corner3(1) corner4(1)],[corner3(2) corner4(2)],'Color','g');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 7. OPTIONAL: Replace the logo of the UPF by the master logo
 %%              in one of the previous images using the DLT algorithm.
+T2 = imread('Data/logos/logo_master.png');
 
-clear;
-clc;
-close all;
+[N,M,~] = size(T2);
+[n,m,~] = size(T);
 
-imargb = imread('Data/logos/logo_master.PNG');
-imbrgb = imread('Data/logos/UPFstand.jpg');
-
-cornersA = [1 size(imbrgb,2) 1 size(imbrgb,2);
-            1 1 size(imbrgb,1) size(imbrgb,1);
-            1 1 1 1];
-cornersB = [169 259 173 264;
-            148 155 274 266;
-            1 1 1 1];
-        
-Hlogo = homography2d(cornersA,cornersB);
-length = size(imargb);
-
-imaw = apply_H_v2(imargb, Hlogo, [-200 1000 -300 1000]);
-imbw = apply_H_v2(imbrgb, eye(3), [-200 1000 -300 1000]);
-figure, imshow(max(imbw,imaw))
-
+S(:,1) = [m/M; 0; 0];
+S(:,2) = [0; n/N; 0];
+S(:,3) = [0; 0; 1];
+H2 = Hab*S;
+corners = [1, size(I{1}, 2), 1, size(I{1}, 1)];
+proj_logo = apply_H_v2(T2, H2, corners); 
+figure;
+imshow(I{1}.*uint8(proj_logo<1))
+figure;
+imshow(max(I{1}.*uint8(proj_logo<1), proj_logo))
 
