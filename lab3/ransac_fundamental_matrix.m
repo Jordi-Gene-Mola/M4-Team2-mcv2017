@@ -39,18 +39,8 @@ idx_inliers = best_inliers;
 function idx_inliers = compute_inliers(F, x1, x2, th)
     x1=normalise(x1);
     x2=normalise(x2);
-%     Ftx2 = F'*x2;
-%     d2 =  sum((x2'*F)'.*x1) ./ ((F(1,:)*x1).^2 + ((F(2,:)*x1).^2 + Ftx2(1,:).^2 + Ftx2(2,:).^2));
-    
-        x2tFx1 = zeros(1,length(x1));
-	for n = 1:length(x1)
-	    x2tFx1(n) = x2(:,n)'*F*x1(:,n);
-    end
-    Fx1 = F*x1;
     Ftx2 = F'*x2;
-    
-d2 = x2tFx1.^2 ./ (Fx1(1,:).^2 + Fx1(2,:).^2 + Ftx2(1,:).^2 + Ftx2(2,:).^2);
-    
+    d2 =  sum((x2'*F)'.*x1).^2 ./ ((F(1,:)*x1).^2 + ((F(2,:)*x1).^2 + Ftx2(1,:).^2 + Ftx2(2,:).^2));
     idx_inliers = find(d2 < th.^2);
 
 
