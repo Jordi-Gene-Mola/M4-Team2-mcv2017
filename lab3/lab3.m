@@ -79,8 +79,8 @@ vgg_gui_F(im1rgb, im2rgb, F');
 
 %% Plot some epipolar lines
 
-l2 = F*p1 % epipolar lines in image 2 % ToDo
-l1 = F'*p2 % epipolar lines in image 1 % ToDo
+l2 = F*p1; % epipolar lines in image 2 % ToDo
+l1 = F'*p2; % epipolar lines in image 1 % ToDo
 
 % choose three random indices
 m1 = inliers(10);
@@ -240,7 +240,122 @@ plot(pi4(1)/pi4(3), pi4(2)/pi4(3), 'g*');
 %     different time instants. At least two images have to be taken from
 %     roughly the same location by the same camera.
 %
+clear all;
+close all;
+clc;
+
+% Read images
+imr1 = imread('1.jpg');
+imr2 = imread('2.jpg');
+imr3 = imread('3.jpg');
+imr4= imread('4.jpg');
+
+%Resizing images because are too large
+im1rgb = imresize(imr1,0.5);
+im2rgb = imresize(imr2,0.5);
+im3rgb = imresize(imr3,0.5);
+im4rgb = imresize(imr4,0.5);
+
+
+im1 = sum(double(im1rgb), 3) / 3 / 255;
+im2 = sum(double(im2rgb), 3) / 3 / 255;
+im3 = sum(double(im3rgb), 3) / 3 / 255;
+im4 = sum(double(im4rgb), 3) / 3 / 255;
+
+% show images
+figure;
+subplot(2,2,1); imshow(im1rgb); axis image; title('Image 1');
+subplot(2,2,2); imshow(im2rgb); axis image; title('Image 2');
+subplot(2,2,3); imshow(im3rgb); axis image; title('Image 3');
+subplot(2,2,4); imshow(im4rgb); axis image; title('Image 4');
+
+% Compute SIFT keypoints
+[points_1, desc_1] = sift(im1, 'Threshold', 0.015); % Do not change this threshold!
+[points_2, desc_2] = sift(im2, 'Threshold', 0.015);
+[points_3, desc_3] = sift(im3, 'Threshold', 0.015);
+[points_4, desc_4] = sift(im4, 'Threshold', 0.015);
+
 % 4.2 Implement the first part (until line 16) of the Algorithm 1 of the 
 %     Photo-sequencing paper with a selection of the detected dynamic
 %     features. You may reuse the code generated for the previous question.
 %
+
+% Take image im1 as reference image (image 1) and compute the fundamental 
+% matrices needed for computing the trajectory of point idx_car_I1
+% (use the SIFT keypoints previously computed)
+
+matches_1_2 = siftmatch(desc_1, desc_2);
+matches_1_3 = siftmatch(desc_1, desc_3);
+matches_1_4 = siftmatch(desc_1, desc_4);
+
+figure;
+plotmatches(im1, im2, points_1(1:2,:), points_2(1:2,:), matches_1_2, 'Stacking', 'v');
+figure;
+plotmatches(im1, im3, points_1(1:2,:), points_3(1:2,:), matches_1_3, 'Stacking', 'v');
+figure;
+plotmatches(im1, im4, points_1(1:2,:), points_4(1:2,:), matches_1_4, 'Stacking', 'v');
+
+p_1_2 = [points_1(1:2, matches_1_2(1,:)); ones(1, length(matches_1_2))];
+p_2_1 = [points_2(1:2, matches_1_2(2,:)); ones(1, length(matches_1_2))];
+[F_1_2, inliers_1_2] = ransac_fundamental_matrix(p_1_2, p_2_1, 2.0); 
+
+ p_1_3 = [points_1(1:2, matches_1_3(1,:)); ones(1, length(matches_1_3))];
+ p_3_1 = [points_3(1:2, matches_1_3(2,:)); ones(1, length(matches_1_3))];
+ [F_1_3, inliers_1_3] = ransac_fundamental_matrix(p_1_3, p_3_1, 2.0); 
+
+p_1_4 = [points_1(1:2, matches_1_4(1,:)); ones(1, length(matches_1_4))];
+p_4_1 = [points_4(1:2, matches_1_4(2,:)); ones(1, length(matches_1_4))];
+[F_1_4, inliers_1_4] = ransac_fundamental_matrix(p_1_4, p_4_1, 2.0); 
+
+
+%% Plot the weight trajectory (keypoint idx_car_I1 in image 1)
+idx_car_I1 = 2191;
+idx_car_I2 = matches_1_2(2,find(matches_1_2(1,:) == idx_car_I1));% ToDo: identify the corresponding point of idx_car_I1 in image 2
+idx_car_I3 = matches_1_3(2,find(matches_1_3(1,:) == idx_car_I1));% ToDo: identify the corresponding point of idx_car_I1 in image 3
+idx_car_I4 = matches_1_4(2,find(matches_1_4(1,:) == idx_car_I1));% ToDo: identify the corresponding point of idx_car_I1 in image 4
+
+
+point1_1 = [points_1(1:2,idx_car_I1)' 1]';
+point1_2 = [782 472 1]';
+%point1_2 = [782 472 1]';
+
+% l1 is the projection of the 3D trajectory of keypoint idx_car_I1
+% (it is the line that joins point1_1 and point1_2)
+l1 = cross(point1_1, point1_2);% ToDo: compute the line
+% plot the line
+figure;imshow(im1);
+hold on;
+t=1:0.1:1000;
+plot(t, -(l1(1)*t + l1(3)) / l1(2), 'y');
+plot(points_1(1,2191), points_1(2,2191), 'y*');
+
+% ToDo: write the homogeneous coordinates of the corresponding point of idx_car_I1 in image 2
+point2 = [points_2(1:2,idx_car_I2)' 1]';%
+% ToDo: compute the epipolar line of point2 in the reference image
+l2 =  F_1_2'*point2%
+% plot the epipolar line
+plot(t, -(l2(1)*t + l2(3)) / l2(2), 'c');
+% ToDo: compute the projection of point idx_car_I2 in the reference image 
+pi2 = cross(l1, l2)%
+% plot this point
+plot(pi2(1)/pi2(3), pi2(2)/pi2(3), 'c*');
+
+% ToDo: write the homogeneous coordinates of the corresponding point of idx_car_I1 in image 3
+point3 = [points_3(1:2,idx_car_I3)' 1]';%
+% ToDo: compute the epipolar line of point3 in the reference image
+l3 = F_1_3'*point3;%
+% plot the epipolar line
+plot(t, -(l3(1)*t + l3(3)) / l3(2), 'b');
+% ToDo: compute the projection of point idx_car_I3 in the reference image
+pi3 = cross(l1, l3)%
+plot(pi3(1)/pi3(3), pi3(2)/pi3(3), 'b*');
+
+% ToDo: write the homogeneous coordinates of the corresponding point of idx_car_I1 in image 4
+point4 = [points_4(1:2,idx_car_I4)' 1]';%
+% ToDo: compute the epipolar line of point4 in the reference image
+l4 = F_1_4'*point4; %
+% plot the epipolar line
+plot(t, -(l4(1)*t + l4(3)) / l4(2), 'g');
+% ToDo: compute the projection of point idx_car_I4 in the reference image
+pi4 = cross(l1, l4);%
+plot(pi4(1)/pi4(3), pi4(2)/pi4(3), 'g*');
