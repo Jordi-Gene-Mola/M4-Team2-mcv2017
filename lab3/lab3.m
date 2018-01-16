@@ -241,8 +241,6 @@ plot(pi4(1)/pi4(3), pi4(2)/pi4(3), 'g*');
 %     roughly the same location by the same camera.
 %
 clear all;
-close all;
-clc;
 
 % Read images
 imr1 = imread('1.jpg');
