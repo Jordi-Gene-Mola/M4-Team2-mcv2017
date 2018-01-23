@@ -139,17 +139,35 @@ plot_camera(Pc2{4},w,h);
 
 %% Reconstruct structure
 % ToDo: Choose a second camera candidate by triangulating a match.
-p1(3)=-1;
-p2(3)=-1;
-i=0;
-while (p1(3) < 0 && p2(3) < 0)
-    i=i+1;
-    X_front = triangulate(x1(:,5), x2(:,5), P1, Pc2{i}, [w h]);
-    p1 = P1*X_front;
-    p2 = Pc2{i}*X_front;
-end
+%%Method 1: We had som problems depending the matching point that we used.
+% p1(3)=-1;
+% p2(3)=-1;
+% i=0;
+% while (p1(3) < 0 && p1(3) < 0)
+%     i=i+1;
+%     X_front = triangulate(x1(:,5), x2(:,5), P1, Pc2{i}, [w h]);
+%     p1 = P1*X_front;
+%     p2 = Pc2{i}*X_front;
+% end
+% P2 = Pc2{i};
 
-P2 = Pc2{i};
+%%Method 2: The problems that we had with method 1 has been solved.
+match_1_2 = randi(length(x1),[1 50]);
+voting=zeros(1,4);
+for i=1:50
+    point1=x1(:,match_1_2(i));
+    point2=x2(:,match_1_2(i));
+    for j=1:4
+        X_front = triangulate(point1, point2, P1, Pc2{j}, [w h]);
+        p1 = P1*X_front;
+        p2 = Pc2{j}*X_front;
+        if (p1(3) > 0 && p1(3) > 0)
+            voting(j)=voting(j)+1;
+        end
+    end
+end
+%voting
+P2 = Pc2{(voting==50)};
 
 % Triangulate all matches.
 N = size(x1,2);
