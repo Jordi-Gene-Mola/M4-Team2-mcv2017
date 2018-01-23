@@ -4,7 +4,8 @@ clear;
 clc;
 close all;
 
-addpath('\sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
+addpath('C:\Users\Fran\Documents\MATLAB\3D\sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
+addpath('C:\Users\Fran\Documents\MATLAB\M4-Team2-mcv2017-master\lab3');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 1. Triangulation
@@ -187,11 +188,11 @@ x2_proj = bsxfun(@rdivide,x2_proj,x2_proj(:,3));
 %Obtain reprojection error and mean error:
 reprojection_error = sum((homog(x1)-x1_proj).^2) + sum((homog(x2)-x2_proj).^2);
 mean_error = mean(reprojection_error);
-numbins_hist = 25
 figure
-hist(reprojection_error, numbins_hist)
+histogram(reprojection_error)
 hold on
-plot([mean_error, mean_error], ylim)
+plot([mean_error, mean_error], ylim, 'Color','r')
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 3. Depth map computation with local methods (SSD)
@@ -219,8 +220,23 @@ plot([mean_error, mean_error], ylim)
 % Note 1: Use grayscale images
 % Note 2: For this first set of images use 0 as minimum disparity 
 % and 16 as the the maximum one.
+left_img = rgb2gray(imread('Data/scene1.row3.col3.ppm'));
+right_img = rgb2gray(imread('Data/scene1.row3.col4.ppm'));
+ground_truth = imread('Data/truedisp.row3.col3.pgm');
+left_img = sum(double(left_img), 3) / 3 / 255;
+right_img = sum(double(right_img), 3) / 3 / 255;
+min_disp = 0;
+max_disp = 16;
+window_size = 20;
+cost = 'SSD';
+[disparity, matching_cost] = stereo_computation(left_img, right_img, min_disp, max_disp, window_size, cost);
+disp(['Matching cost: '  num2str(matching_cost)])
+% Compare disparity maps
+figure
+imshow(disparity / max(max(disparity)));
 
-
+figure
+imshow(ground_truth);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 4. Depth map computation with local methods (NCC)
 
@@ -229,7 +245,18 @@ plot([mean_error, mean_error], ylim)
 %
 % Evaluate the results changing the window size (e.g. 3x3, 9x9, 20x20,
 % 30x30) and the matching cost. Comment the results.
+cost = 'NCC';
+window_size = 20;
 
+[disparity, matching_cost] = stereo_computation(left_img, right_img, min_disp, max_disp, window_size, cost);
+disp(['Matching cost: '  num2str(matching_cost)])
+
+% Compare disparity maps
+figure
+imshow(disparity / max(max(disparity)));
+
+figure
+imshow(ground_truth);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 5. Depth map computation with local methods
 
