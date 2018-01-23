@@ -39,7 +39,7 @@ function [disparity, matching_cost] = stereo_computation(left_img, right_img, mi
                     ncc_value = sum(weights(:).*(left(:)-sum_left).*(right(:)-sum_right))/(sigma_left*sigma_right);
                     if ncc_value > max_ncc
                         max_ncc = ncc_value;
-                        index_best_cost = i;
+                        index_best_cost = idx;
                     end
                 end
                 matching_cost = max_ncc;
