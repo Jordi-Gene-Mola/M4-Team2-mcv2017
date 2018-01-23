@@ -1,8 +1,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Lab 4: Reconstruction from two views (knowing internal camera parameters) 
+clear;
+clc;
+close all;
 
-addpath('/imatge/froldan/M4-Team2-mcv2017/lab3');
-addpath('/imatge/froldan/M4-Team2-mcv2017/lab3/sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
+addpath('\sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 1. Triangulation
@@ -139,7 +141,7 @@ plot_camera(Pc2{4},w,h);
 p1(3)=-1;
 p2(3)=-1;
 i=0;
-while (p1(3) < 0 && p1(3) < 0)
+while (p1(3) < 0 && p2(3) < 0)
     i=i+1;
     X_front = triangulate(x1(:,5), x2(:,5), P1, Pc2{i}, [w h]);
     p1 = P1*X_front;
@@ -177,12 +179,10 @@ axis equal;
 %       plot the histogram of reprojection errors, and
 %       plot the mean reprojection error
 
-%Points normalization:
-
 x1_proj=P1*X;
 x2_proj=P2*X;
-x1_proj = bsxfun(@rdivide,x1_proj,x1_proj(:,3))
-x2_proj = bsxfun(@rdivide,x2_proj,x2_proj(:,3))
+x1_proj = bsxfun(@rdivide,x1_proj,x1_proj(:,3));
+x2_proj = bsxfun(@rdivide,x2_proj,x2_proj(:,3));
 
 %Obtain reprojection error and mean error:
 reprojection_error = sum((homog(x1)-x1_proj).^2) + sum((homog(x2)-x2_proj).^2);
