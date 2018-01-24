@@ -8,6 +8,16 @@ function [disparity, matching_cost] = stereo_computation(left_img, right_img, mi
     left_img = padarray(left_img, [padding padding]);
     right_img = padarray(right_img, [padding padding]);
     
+    if(cost == 'BLF')
+        weight_left = zeros(size(window_size));
+        for i = 1:length(window_size)
+            for j = 1:length(window_size)                
+                weight_left(i,j) = exp(-(pdist([[i,j];[padding,padding]],'euclidean'))/window_size);
+            end
+        end
+        weight_right = weight_left;
+    end
+    
     for x=1+padding:h+padding
         for y=1+padding:w+padding
             left = left_img(x-padding:x+padding, y-padding:y+padding);
@@ -42,7 +52,19 @@ function [disparity, matching_cost] = stereo_computation(left_img, right_img, mi
                         index_best_cost = i;
                     end
                 end
-                matching_cost = max_ncc;
+                matching_cost = max_ncc
+            elseif cost == 'BLF'
+                min_blf = Inf;
+                for i = min_left:max_left
+                    right = right_img(x-padding:x+padding, i-padding:i+padding);
+	                diff=sum(sum(abs(left-right)));
+                    C=sum(sum(weight_left.*weight_right.*diff))/sum(sum(weight_left.*weight_right));
+                    if(C < min_blf)
+	                        index_best_cost = i;
+	                        min_blf = C;
+                    end
+                end
+                matching_cost = min_blf;
             end
             disparity(x-padding, y-padding) = abs(y-index_best_cost);
         end

@@ -245,7 +245,7 @@ left_img = sum(double(left_img), 3) / 3 / 255;
 right_img = sum(double(right_img), 3) / 3 / 255;
 min_disp = 0;
 max_disp = 16;
-window_size = 20;
+window_size = 9;
 cost = 'SSD';
 [disparity, matching_cost] = stereo_computation(left_img, right_img, min_disp, max_disp, window_size, cost);
 disp(['Matching cost: '  num2str(matching_cost)])
@@ -286,6 +286,20 @@ imshow(ground_truth);
 % Notice that in this new data the minimum and maximum disparities may
 % change.
 
+left_img = rgb2gray(imread('Data/0001_rectified_s.png'));
+right_img = rgb2gray(imread('Data/0002_rectified_s.png'));
+left_img = sum(double(left_img), 3) / 3 / 255;
+right_img = sum(double(right_img), 3) / 3 / 255;
+min_disp = 0;
+max_disp = 128;
+window_size = 20;
+cost = 'SSD';
+[disparity, matching_cost] = stereo_computation(left_img, right_img, min_disp, max_disp, window_size, cost);
+disp(['Matching cost: '  num2str(matching_cost)])
+% Compare disparity maps
+figure
+imshow(disparity / max(max(disparity)));
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 6. Bilateral weights
 
@@ -296,6 +310,24 @@ imshow(ground_truth);
 % Comment the results and compare them to the previous results (no weights).
 %
 % Note: Use grayscale images (the paper uses color images)
+
+left_img = rgb2gray(imread('Data/scene1.row3.col3.ppm'));
+right_img = rgb2gray(imread('Data/scene1.row3.col4.ppm'));
+ground_truth = imread('Data/truedisp.row3.col3.pgm');
+left_img = sum(double(left_img), 3) / 3 / 255;
+right_img = sum(double(right_img), 3) / 3 / 255;
+min_disp = 0;
+max_disp = 16;
+window_size = 9;
+cost = 'BLF';
+[disparity, matching_cost] = stereo_computation(left_img, right_img, min_disp, max_disp, window_size, cost);
+disp(['Matching cost: '  num2str(matching_cost)])
+% Compare disparity maps
+figure
+imshow(disparity / max(max(disparity)));
+
+figure
+imshow(ground_truth);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIONAL:  Stereo computation with Belief Propagation
