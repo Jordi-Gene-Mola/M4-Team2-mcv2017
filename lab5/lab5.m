@@ -4,7 +4,7 @@
 
 %addpath('sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
 
-addpath('/imatge/froldan/M4-Team2-mcv2017/lab3/sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
+addpath('C:\Users\Fran\Documents\MATLAB\3D\sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 0. Create synthetic data
@@ -67,7 +67,7 @@ K = [709 0 450; 0 709 300; 0 0 1];
 Rz = [cos(0.88*pi/2) -sin(0.88*pi/2) 0; sin(0.88*pi/2) cos(0.88*pi/2) 0; 0 0 1];
 Ry = [cos(0.88*pi/2) 0 sin(0.88*pi/2); 0 1 0; -sin(0.88*pi/2) 0 cos(0.88*pi/2)];
 R1 = Rz*Ry;
-t1 = -R1*[40; 10; 5];
+t1 = -R1*[42; 5; 10];
 
 Rz = [cos(0.8*pi/2) -sin(0.8*pi/2) 0; sin(0.8*pi/2) cos(0.8*pi/2) 0; 0 0 1];
 Ry = [cos(0.88*pi/2) 0 sin(0.88*pi/2); 0 1 0; -sin(0.88*pi/2) 0 cos(0.88*pi/2)];
@@ -259,8 +259,13 @@ v3p = vanishing_point(x2(:,1),x2(:,2),x2(:,4),x2(:,3));
 
 % ToDo: use the vanishing points to compute the matrix Hp that 
 %       upgrades the projective reconstruction to an affine reconstruction
-
-
+A = [triangulate(euclid(v1), euclid(v1p), Pproj(1:3,:), Pproj(4:6,:), [w h])';
+    triangulate(euclid(v2), euclid(v2p), Pproj(1:3,:), Pproj(4:6,:), [w h])';
+    triangulate(euclid(v3), euclid(v3p), Pproj(1:3,:), Pproj(4:6,:), [w h])'];
+[~,~,V] = svd(A);
+p = V(:,end);
+p = p/p(end); %Force last value of p to be 1
+Hp = [eye(3,3) [0;0;0]; p'];
 %% check results
 
 Xa = euclid(Hp*Xproj);
@@ -314,6 +319,21 @@ v1 = vanishing_point(x1(:,2),x1(:,5),x1(:,3),x1(:,6));
 v2 = vanishing_point(x1(:,1),x1(:,2),x1(:,3),x1(:,4));
 v3 = vanishing_point(x1(:,1),x1(:,4),x1(:,2),x1(:,3));
 
+Awv =[v1(1)*v2(1) v1(1)*v2(2)+v1(2)*v2(1) v1(1)*v2(3)+v1(3)*v2(1) v1(2)*v2(2) v1(2)*v2(3)+v1(3)*v2(2) v1(3)*v2(3);
+    v1(1)*v3(1) v1(1)*v3(2)+v1(2)*v3(1) v1(1)*v3(3)+v1(3)*v3(1) v1(2)*v3(2) v1(2)*v3(3)+v1(3)*v3(2) v1(3)*v3(3);
+    v2(1)*v3(1) v2(1)*v3(2)+v2(2)*v3(1) v2(1)*v3(3)+v2(3)*v3(1) v2(2)*v3(2) v2(2)*v3(3)+v2(3)*v3(2) v2(3)*v3(3);
+    0 1 0 0 0 0; 1 0 0 -1 0 0];
+[~,~, V] = svd(Awv);
+wd = V(:,end);
+omega = [wd(1) wd(2) wd(3); wd(2) wd(4) wd(5); wd(3) wd(5) wd(6)];
+
+P = Pproj(1:3, :)*inv(Hp);
+M = P(:,1:3); 
+%Matrix A comes from cholesky factorization 
+chol_fact = inv(M'*omega*M);
+A = chol(chol_fact);
+
+Ha = [inv(A) [0;0;0]; 0 0 0 1];
 %% check results
 
 Xa = euclid(Ha*Hp*Xproj);
@@ -441,4 +461,3 @@ axis equal;
 % Add a 4th view, incorporate new 3D points by triangulation, 
 % incorporate new views by resectioning, 
 % apply any kind of processing on the point cloud, ...)
-

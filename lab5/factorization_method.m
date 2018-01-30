@@ -4,7 +4,7 @@ function [Pproj, Xproj] = factorization_method(x1, x2, sturm)
         sturm = false;
     end
     d = inf;
-    num_points = size(x1,2)
+    num_points = size(x1,2);
     %Normalize set of points in image:
     [x1_norm, T1] = normalise2dpts(x1);
     [x2_norm, T2] = normalise2dpts(x2);
@@ -34,10 +34,10 @@ function [Pproj, Xproj] = factorization_method(x1, x2, sturm)
     while 1
        dist = Inf;
        iters = 0;
-       %Alternate rescaling row and columns no have unit norm
+       %Alternate rescaling rows and columns to have unit norm
        while 1
            previous_dist = dist;
-           previous_lambda = lambda_matrix
+           previous_lambda = lambda_matrix;
            if mod(iters,2) > 0
                lambda_matrix(1,:) = lambda_matrix(1,:) ./ norm(lambda_matrix(1,:));
                lambda_matrix(2,:) = lambda_matrix(2,:) ./ norm(lambda_matrix(2,:));
@@ -85,6 +85,8 @@ function [Pproj, Xproj] = factorization_method(x1, x2, sturm)
            lambda_matrix(2,:) = P(6,:);
        end
     end
+    %Unnormalize matrices
     Pproj(1:3,:) = inv(T1) * Pmotion(1:3,:);
     Pproj(4:6,:) = inv(T2) * Pmotion(4:6,:);
+    disp(['Error: '  num2str(d)])
 end
