@@ -387,12 +387,64 @@ I{2} = sum(Irgb{2}, 3) / 3;
 
 Ncam = length(I);
 
+[h,w] = size(I{1});
+
+% Compute keypoints and matches.
+points = cell(2,1);
+descr = cell(2,1);
+for i = 1:2
+    [points{i}, descr{i}] = sift(I{i}, 'Threshold', 0.01);
+    points{i} = points{i}(1:2,:);
+end
+
+matches = siftmatch(descr{1}, descr{2});
+
+% % Plot matches.
+% figure();
+% plotmatches(I{1}, I{2}, points{1}, points{2}, matches, 'Stacking', 'v');
+
 % ToDo: compute a projective reconstruction using the factorization method
 
 % ToDo: show the data points (image correspondences) and the projected
 % points (of the reconstructed 3D points) in images 1 and 2. Reuse the code
 % in section 'Check projected points' (synthetic experiment).
 
+% Fit Fundamental matrix and remove outliers.
+x1 = points{1}(:, matches(1, :));
+x2 = points{2}(:, matches(2, :));
+[F, inliers] = ransac_fundamental_matrix(homog(x1), homog(x2), 2.0);
+
+% Plot inliers.
+inlier_matches = matches(:, inliers);
+figure;
+plotmatches(I{1}, I{2}, points{1}, points{2}, inlier_matches, 'Stacking', 'v');
+
+x1 = points{1}(:, inlier_matches(1, :));
+x2 = points{2}(:, inlier_matches(2, :));
+
+x1 = homog(x1);
+x2 = homog(x2);
+
+sturm = true;
+[Pproj, Xproj] = factorization_method(x1, x2, sturm);
+
+for i=1:2
+    x_proj{i} = euclid(Pproj(3*i-2:3*i, :)*Xproj);
+end
+
+
+% image 1
+figure;
+hold on
+plot(x1(1,:),x1(2,:),'r*');
+plot(x_proj{1}(1,:),x_proj{1}(2,:),'bo');
+axis equal
+
+% image 2
+figure;
+hold on
+plot(x2(1,:),x2(2,:),'r*');
+plot(x_proj{2}(1,:),x_proj{2}(2,:),'bo');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 5. Affine reconstruction (real data)
 
