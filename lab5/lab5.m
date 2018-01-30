@@ -4,8 +4,8 @@
 
 %addpath('sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
 
-addpath('C:\Users\Fran\Documents\MATLAB\3D\sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
-
+addpath('C:\Users\Jordi\Jordi\Uni\master CV\M4-3DVision\project\lab3\sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
+addpath(genpath('vanishing_points_v0.9'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 0. Create synthetic data
 
@@ -386,6 +386,15 @@ I{1} = sum(Irgb{1}, 3) / 3;
 I{2} = sum(Irgb{2}, 3) / 3;
 
 Ncam = length(I);
+% % Plot matches.
+% figure();
+% plotmatches(I{1}, I{2}, points{1}, points{2}, matches, 'Stacking', 'v');
+
+% ToDo: compute a projective reconstruction using the factorization method
+
+% ToDo: show the data points (image correspondences) and the projected
+% points (of the reconstructed 3D points) in images 1 and 2. Reuse the code
+% in section 'Check projected points' (synthetic experiment).
 
 [h,w] = size(I{1});
 
@@ -398,16 +407,6 @@ for i = 1:2
 end
 
 matches = siftmatch(descr{1}, descr{2});
-
-% % Plot matches.
-% figure();
-% plotmatches(I{1}, I{2}, points{1}, points{2}, matches, 'Stacking', 'v');
-
-% ToDo: compute a projective reconstruction using the factorization method
-
-% ToDo: show the data points (image correspondences) and the projected
-% points (of the reconstructed 3D points) in images 1 and 2. Reuse the code
-% in section 'Check projected points' (synthetic experiment).
 
 % Fit Fundamental matrix and remove outliers.
 x1 = points{1}(:, matches(1, :));
@@ -435,6 +434,7 @@ end
 
 % image 1
 figure;
+imshow(I{1});
 hold on
 plot(x1(1,:),x1(2,:),'r*');
 plot(x_proj{1}(1,:),x_proj{1}(2,:),'bo');
@@ -442,9 +442,12 @@ axis equal
 
 % image 2
 figure;
+imshow(I{2});
 hold on
 plot(x2(1,:),x2(2,:),'r*');
 plot(x_proj{2}(1,:),x_proj{2}(2,:),'bo');
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 5. Affine reconstruction (real data)
 
@@ -457,23 +460,14 @@ plot(x_proj{2}(1,:),x_proj{2}(2,:),'bo');
 
 % This is an example on how to obtain the vanishing points (VPs) from three
 % orthogonal lines in image 1
-% ToDo: compute the matrix Hp that updates the projective reconstruction
-% to an affine one
-%
-% You may use the vanishing points given by function 'detect_vps' that 
-% implements the method presented in Lezama et al. CVPR 2014
-% (http://dev.ipol.im/~jlezama/vanishing_points/)
-
-% This is an example on how to obtain the vanishing points (VPs) from three
-% orthogonal lines in image 1
 
 img_in =  'Data/0000_s.png'; % input image
-folder_out = '.'; % output folder
+folder_out = 'Resultats'; % output folder
 manhattan = 1;
-acceleration = 0;
+acceleration = 1;
 focal_ratio = 1;
-params.PRINT = 1;
-params.PLOT = 1;
+params.PRINT = 0;
+params.PLOT = 0;
 [horizon, VPs] = detect_vps(img_in, folder_out, manhattan, acceleration, focal_ratio, params);
 
 
@@ -549,3 +543,4 @@ axis equal;
 % Add a 4th view, incorporate new 3D points by triangulation, 
 % incorporate new views by resectioning, 
 % apply any kind of processing on the point cloud, ...)
+
