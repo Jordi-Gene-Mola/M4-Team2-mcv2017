@@ -457,6 +457,15 @@ plot(x_proj{2}(1,:),x_proj{2}(2,:),'bo');
 
 % This is an example on how to obtain the vanishing points (VPs) from three
 % orthogonal lines in image 1
+% ToDo: compute the matrix Hp that updates the projective reconstruction
+% to an affine one
+%
+% You may use the vanishing points given by function 'detect_vps' that 
+% implements the method presented in Lezama et al. CVPR 2014
+% (http://dev.ipol.im/~jlezama/vanishing_points/)
+
+% This is an example on how to obtain the vanishing points (VPs) from three
+% orthogonal lines in image 1
 
 img_in =  'Data/0000_s.png'; % input image
 folder_out = '.'; % output folder
@@ -468,10 +477,37 @@ params.PLOT = 1;
 [horizon, VPs] = detect_vps(img_in, folder_out, manhattan, acceleration, focal_ratio, params);
 
 
+img_in =  'Data/0001_s.png'; % input image
+[horizon2, VPs2] = detect_vps(img_in, folder_out, manhattan, acceleration, focal_ratio, params);
+
+% Compute the vanishing points in each image
+v1 = VPs1(:,1);
+v2 = VPs1(:,2);
+v3 = VPs1(:,3);
+
+v1p = VPs2(:,1);
+v2p = VPs2(:,2);
+v3p = VPs2(:,3);
+
+% ToDo: use the vanishing points to compute the matrix Hp that 
+%       upgrades the projective reconstruction to an affine reconstruction
+A = [triangulate(euclid(v1), euclid(v1p), Pproj(1:3,:), Pproj(4:6,:), [w h])';
+    triangulate(euclid(v2), euclid(v2p), Pproj(1:3,:), Pproj(4:6,:), [w h])';
+    triangulate(euclid(v3), euclid(v3p), Pproj(1:3,:), Pproj(4:6,:), [w h])'];
+[~,~,V] = svd(A);
+p = V(:,end);
+p = p/p(end); %Force last value of p to be 1
+Hp = [eye(3,3) [0;0;0]; p'];
+
+
+
+
 %% Visualize the result
 
 % x1m are the data points in image 1
 % Xm are the reconstructed 3D points (projective reconstruction)
+x1m=x1;
+Xm=Xproj;
 
 r = interp2(double(Irgb{1}(:,:,1)), x1m(1,:), x1m(2,:));
 g = interp2(double(Irgb{1}(:,:,2)), x1m(1,:), x1m(2,:));
