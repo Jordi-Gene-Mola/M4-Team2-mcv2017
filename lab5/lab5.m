@@ -1,11 +1,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Lab 5: Reconstruction from uncalibrated viewas
 
+clear;
+clc;
+close all;
+addpath('sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
 
-%addpath('sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
-
-addpath('C:\Users\Jordi\Jordi\Uni\master CV\M4-3DVision\project\lab3\sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
-addpath(genpath('vanishing_points_v0.9'));
+%addpath('C:\Users\Jordi\Jordi\Uni\master CV\M4-3DVision\project\lab3\sift'); % ToDo: change 'sift' to the correct path where you have the sift functions
+%addpath(genpath('vanishing_points_v0.9'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 0. Create synthetic data
 
@@ -468,11 +470,21 @@ acceleration = 1;
 focal_ratio = 1;
 params.PRINT = 0;
 params.PLOT = 0;
-[horizon, VPs] = detect_vps(img_in, folder_out, manhattan, acceleration, focal_ratio, params);
+windows = 1;
+
+if(windows == 0)
+[horizon, VPs1] = detect_vps(img_in, folder_out, manhattan, acceleration, focal_ratio, params);
+end
 
 
 img_in =  'Data/0001_s.png'; % input image
-[horizon2, VPs2] = detect_vps(img_in, folder_out, manhattan, acceleration, focal_ratio, params);
+
+
+if(windows == 0)
+    [horizon2, VPs2] = detect_vps(img_in, folder_out, manhattan, acceleration, focal_ratio, params);
+else
+    load('VPs.mat')
+end
 
 % Compute the vanishing points in each image
 v1 = VPs1(:,1);
@@ -485,9 +497,9 @@ v3p = VPs2(:,3);
 
 % ToDo: use the vanishing points to compute the matrix Hp that 
 %       upgrades the projective reconstruction to an affine reconstruction
-A = [triangulate(euclid(v1), euclid(v1p), Pproj(1:3,:), Pproj(4:6,:), [w h])';
-    triangulate(euclid(v2), euclid(v2p), Pproj(1:3,:), Pproj(4:6,:), [w h])';
-    triangulate(euclid(v3), euclid(v3p), Pproj(1:3,:), Pproj(4:6,:), [w h])'];
+A = [triangulate(v1, v1p, Pproj(1:3,:), Pproj(4:6,:), [w h])';
+    triangulate(v2, v2p, Pproj(1:3,:), Pproj(4:6,:), [w h])';
+    triangulate(v3, v3p, Pproj(1:3,:), Pproj(4:6,:), [w h])'];
 [~,~,V] = svd(A);
 p = V(:,end);
 p = p/p(end); %Force last value of p to be 1
@@ -519,6 +531,50 @@ axis equal;
 
 % ToDo: compute the matrix Ha that updates the affine reconstruction
 % to a metric one and visualize the result in 3D as in the previous section
+
+v1 = homog(VPs1(:,1));
+v2 = homog(VPs1(:,2));
+v3 = homog(VPs1(:,3));
+
+A_omega =   [v1(1)*v2(1) v1(1)*v2(2) + v1(2)*v2(1) v1(1)*v2(3) + v1(3)*v2(1) v1(2)*v2(2) v1(2)*v2(3) + v1(3)*v2(2) v1(3)*v2(3);
+            v1(1)*v3(1) v1(1)*v3(2) + v1(2)*v3(1) v1(1)*v3(3) + v1(3)*v3(1) v1(2)*v3(2) v1(2)*v3(3) + v1(3)*v3(2) v1(3)*v3(3);
+            v2(1)*v3(1) v2(1)*v3(2) + v2(2)*v3(1) v2(1)*v3(3) + v2(3)*v3(1) v2(2)*v3(2) v2(2)*v3(3) + v2(3)*v3(2) v2(3)*v3(3);
+            0           1                         0                         0           0                         0;
+            1           0                         0                         -1          0                         0];
+
+
+[~,~, V] = svd(A_omega);
+omega_v = V(:,end);
+
+omega = [omega_v(1) omega_v(2) omega_v(3);
+         omega_v(2) omega_v(4) omega_v(5);
+         omega_v(3) omega_v(5) omega_v(6)];
+     
+P = Pproj(1:3, :)*inv(Hp);
+M = P(:,1:3);
+
+AAt = inv(M'*omega*M);
+
+A = chol(AAt);
+
+Ha = eye(4,4);
+Ha(1:3,1:3) = inv(A);
+
+%% Visualize the result
+
+% x1m are the data points in image 1
+% Xm are the reconstructed 3D points (projective reconstruction)
+
+r = interp2(double(Irgb{1}(:,:,1)), x1m(1,:), x1m(2,:));
+g = interp2(double(Irgb{1}(:,:,2)), x1m(1,:), x1m(2,:));
+b = interp2(double(Irgb{1}(:,:,3)), x1m(1,:), x1m(2,:));
+Xe = euclid(Ha*Hp*Xm);
+figure; hold on;
+[w,h] = size(I{1});
+for i = 1:length(Xe)
+    scatter3(Xe(1,i), Xe(2,i), Xe(3,i), 2^2, [r(i) g(i) b(i)], 'filled');
+end;
+axis equal;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 7. OPTIONAL: Projective reconstruction from two views
